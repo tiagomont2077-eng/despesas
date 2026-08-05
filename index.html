@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2F6F4E">
+<meta name="description" content="Controle simples de despesas do dia a dia, direto no celular.">
+<title>Minhas Despesas</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icone-192.png">
+<link rel="apple-touch-icon" href="./icons/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Despesas">
+<link rel="stylesheet" href="./css/estilo.css">
+</head>
+<body>
+
+<div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+
+<main id="conteudo">
+
+  <!-- ================= ABA: LANCAR ================= -->
+  <section id="painel-lancar" class="painel" aria-labelledby="titulo-lancar">
+    <header class="cabecalho">
+      <h1 id="titulo-lancar">Novo gasto</h1>
+      <p class="cabecalho__sub" id="data-hoje"></p>
+    </header>
+
+    <form id="form-despesa" novalidate>
+      <input type="hidden" id="campo-id">
+
+      <div class="campo campo--valor">
+        <label for="campo-valor">Quanto foi?</label>
+        <div class="valor-caixa">
+          <span class="valor-caixa__moeda" aria-hidden="true">R$</span>
+          <input
+            id="campo-valor"
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            placeholder="0,00"
+            aria-describedby="erro-valor">
+        </div>
+        <p class="erro" id="erro-valor" hidden></p>
+      </div>
+
+      <div class="campo">
+        <label for="campo-descricao">Com o quê?</label>
+        <input
+          id="campo-descricao"
+          type="text"
+          autocomplete="off"
+          maxlength="120"
+          placeholder="Ex.: pão, ônibus, farmácia">
+      </div>
+
+      <div class="campo">
+        <label for="campo-busca-categoria">Categoria</label>
+
+        <!-- Combobox filtravel: os botoes ja estao la; digitar so reduz a lista. -->
+        <div class="busca-caixa">
+          <span class="busca-caixa__lupa" aria-hidden="true">🔍</span>
+          <input
+            id="campo-busca-categoria"
+            type="text"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="grade-categorias"
+            aria-describedby="dica-categoria"
+            placeholder="Toque abaixo ou digite para filtrar">
+          <button type="button" id="limpar-busca" class="busca-caixa__limpar" hidden
+                  aria-label="Limpar filtro de categoria">✕</button>
+        </div>
+
+        <div id="grade-categorias" class="grade-categorias" role="listbox"
+             aria-label="Categorias"></div>
+
+        <p class="dica" id="dica-categoria" hidden></p>
+        <p class="erro" id="erro-categoria" hidden></p>
+      </div>
+
+      <div class="campo">
+        <button type="button" id="alternar-data" class="link" aria-expanded="false"
+                aria-controls="bloco-data">
+          Alterar data e hora
+        </button>
+        <div id="bloco-data" hidden>
+          <label for="campo-data" class="rotulo-menor">Data e hora do gasto</label>
+          <input id="campo-data" type="datetime-local">
+        </div>
+      </div>
+
+      <div class="acoes-form">
+        <button type="submit" id="botao-salvar" class="botao botao--principal">Salvar</button>
+        <button type="button" id="botao-cancelar" class="botao botao--fantasma" hidden>
+          Cancelar edição
+        </button>
+      </div>
+    </form>
+
+    <section class="lista-dia" aria-labelledby="titulo-lista">
+      <div class="lista-dia__cabecalho">
+        <h2 id="titulo-lista">Gastos de hoje</h2>
+        <strong id="total-hoje" class="lista-dia__total">R$ 0,00</strong>
+      </div>
+      <ul id="lista-hoje" class="lancamentos"></ul>
+      <p id="vazio-hoje" class="vazio" hidden>
+        Nenhum gasto lançado hoje ainda.
+      </p>
+    </section>
+  </section>
+
+  <!-- ================= ABA: RESUMO ================= -->
+  <section id="painel-resumo" class="painel" aria-labelledby="titulo-resumo" hidden>
+    <header class="cabecalho">
+      <h1 id="titulo-resumo">Resumo</h1>
+    </header>
+
+    <div class="seletor-periodo" role="group" aria-label="Escolher período"></div>
+
+    <div class="navegador">
+      <button type="button" id="periodo-anterior" class="navegador__seta"
+              aria-label="Período anterior">‹</button>
+      <p class="navegador__rotulo" id="rotulo-periodo" aria-live="polite">—</p>
+      <button type="button" id="periodo-proximo" class="navegador__seta"
+              aria-label="Próximo período">›</button>
+    </div>
+
+    <section class="cartao cartao--total" aria-labelledby="rotulo-total">
+      <p class="cartao__rotulo" id="rotulo-total">Total gasto</p>
+      <strong class="total-grande" id="total-periodo">R$ 0,00</strong>
+      <p class="comparacao" id="comparacao-periodo"></p>
+    </section>
+
+    <section class="cartao" aria-labelledby="titulo-texto-resumo">
+      <h2 id="titulo-texto-resumo">Como foi o período</h2>
+      <p class="texto-resumo" id="texto-resumo"></p>
+      <div id="area-ia" hidden>
+        <button type="button" id="botao-ia" class="botao botao--secundario">
+          ✨ Resumo com IA
+        </button>
+        <p class="texto-resumo texto-resumo--ia" id="texto-ia" hidden></p>
+        <p class="dica" id="estado-ia" hidden></p>
+      </div>
+    </section>
+
+    <div id="area-graficos">
+      <section class="cartao" aria-labelledby="titulo-pizza">
+        <h2 id="titulo-pizza">Para onde foi o dinheiro</h2>
+        <div class="grafico-caixa">
+          <canvas id="grafico-pizza" role="img"
+                  aria-label="Proporção de gastos por categoria"></canvas>
+        </div>
+        <ul class="legenda" id="legenda-categorias"></ul>
+      </section>
+
+      <section class="cartao" aria-labelledby="titulo-barras">
+        <h2 id="titulo-barras">Evolução</h2>
+        <div class="grafico-caixa grafico-caixa--barras">
+          <canvas id="grafico-barras" role="img"
+                  aria-label="Evolução dos gastos ao longo do tempo"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <p id="vazio-periodo" class="vazio" hidden>
+      Nenhum gasto lançado neste período.
+    </p>
+  </section>
+
+  <!-- ================= ABA: AJUSTES ================= -->
+  <section id="painel-ajustes" class="painel" aria-labelledby="titulo-ajustes" hidden>
+    <header class="cabecalho">
+      <h1 id="titulo-ajustes">Ajustes</h1>
+    </header>
+
+    <section class="cartao">
+      <h2>Cópia de segurança</h2>
+      <p class="cartao__texto">
+        Os dados ficam guardados só neste aparelho. Se você limpar os dados do
+        navegador ou trocar de celular, eles somem. Guarde uma cópia de vez em quando.
+      </p>
+      <p class="cartao__texto"><strong id="contagem-despesas">0 lançamentos</strong> guardados.</p>
+      <div class="acoes-cartao">
+        <button type="button" id="botao-exportar" class="botao botao--secundario">
+          Baixar cópia
+        </button>
+        <button type="button" id="botao-importar" class="botao botao--secundario">
+          Restaurar cópia
+        </button>
+        <input type="file" id="arquivo-importar" accept="application/json,.json" hidden>
+      </div>
+    </section>
+
+    <section class="cartao">
+      <h2>Resumo com IA <span class="etiqueta">opcional</span></h2>
+      <p class="cartao__texto">
+        O app já escreve um resumo sozinho, sem internet. Se você colar uma chave da
+        API da Anthropic aqui, aparece também um botão para gerar um resumo mais
+        detalhado. A chave fica guardada neste aparelho e o uso é cobrado pela Anthropic.
+      </p>
+      <div class="campo">
+        <label for="campo-chave" class="rotulo-menor">Chave da API</label>
+        <input id="campo-chave" type="password" autocomplete="off"
+               placeholder="sk-ant-..." spellcheck="false">
+      </div>
+      <div class="acoes-cartao">
+        <button type="button" id="botao-salvar-chave" class="botao botao--secundario">
+          Salvar chave
+        </button>
+        <button type="button" id="botao-remover-chave" class="botao botao--fantasma">
+          Remover
+        </button>
+      </div>
+      <p class="dica" id="estado-chave"></p>
+    </section>
+
+    <section class="cartao cartao--perigo">
+      <h2>Apagar tudo</h2>
+      <p class="cartao__texto">
+        Remove todos os lançamentos deste aparelho. Não dá para desfazer.
+      </p>
+      <button type="button" id="botao-apagar-tudo" class="botao botao--perigo">
+        Apagar todos os lançamentos
+      </button>
+    </section>
+  </section>
+
+</main>
+
+<nav class="abas" aria-label="Seções do aplicativo">
+  <button type="button" class="aba" data-aba="lancar" aria-current="page">
+    <span class="aba__icone" aria-hidden="true">＋</span>
+    <span class="aba__texto">Lançar</span>
+  </button>
+  <button type="button" class="aba" data-aba="resumo">
+    <span class="aba__icone" aria-hidden="true">📊</span>
+    <span class="aba__texto">Resumo</span>
+  </button>
+  <button type="button" class="aba" data-aba="ajustes">
+    <span class="aba__icone" aria-hidden="true">⚙️</span>
+    <span class="aba__texto">Ajustes</span>
+  </button>
+</nav>
+
+<!-- Chart.js local (nao CDN): o app precisa abrir sem internet.
+     Vem antes do modulo para que window.Chart ja exista. -->
+<script src="./vendor/chart.umd.min.js" defer></script>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

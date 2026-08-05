@@ -1,0 +1,16 @@
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Node (o projeto nao usa, mas npx deixa rastros)
+node_modules/
+npm-debug.log*
+
+# Copias de seguranca baixadas do app
+despesas-*.json

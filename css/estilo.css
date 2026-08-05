@@ -1,0 +1,440 @@
+/* Minhas Despesas — folha de estilo unica, mobile-first.
+   Sem dependencias externas: tudo precisa funcionar offline. */
+
+:root {
+  --fundo: #FAF7F2;
+  --superficie: #FFFFFF;
+  --tinta: #1F2421;
+  --tinta-suave: #5C635E;
+  --borda: #E2DDD4;
+  --acento: #2F6F4E;
+  --acento-escuro: #245840;
+  --acento-claro: #E8F1EC;
+  --perigo: #B3261E;
+  --perigo-claro: #FCEBEA;
+  --raio: 14px;
+  --sombra: 0 1px 2px rgba(31, 36, 33, .06), 0 4px 12px rgba(31, 36, 33, .05);
+  --alvo: 56px; /* altura minima confortavel para o toque */
+  --barra: 68px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--tinta);
+  font: 18px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Espaco para a barra de abas fixa + area segura do iPhone */
+  padding-bottom: calc(var(--barra) + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+}
+
+#conteudo { padding: 20px 16px 32px; max-width: 640px; margin: 0 auto; }
+
+.painel[hidden] { display: none; }
+
+/* ---------- Cabecalho ---------- */
+
+.cabecalho { margin-bottom: 20px; }
+.cabecalho h1 { font-size: 1.65rem; margin: 0; letter-spacing: -.02em; }
+.cabecalho__sub { margin: 4px 0 0; color: var(--tinta-suave); font-size: .95rem; }
+
+/* ---------- Campos ---------- */
+
+.campo { margin-bottom: 22px; }
+
+label, .rotulo-menor {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.rotulo-menor { font-size: .92rem; color: var(--tinta-suave); font-weight: 500; }
+
+input[type="text"],
+input[type="password"],
+input[type="datetime-local"] {
+  width: 100%;
+  min-height: var(--alvo);
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--tinta);
+  background: var(--superficie);
+  border: 2px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--acento);
+  outline-offset: 2px;
+}
+
+/* Campo de valor: o mais importante da tela, entao o maior */
+.valor-caixa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--superficie);
+  border: 2px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 6px 14px;
+}
+.valor-caixa:focus-within { border-color: var(--acento); }
+.valor-caixa__moeda { font-size: 1.4rem; font-weight: 600; color: var(--tinta-suave); }
+.valor-caixa input {
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  min-height: auto;
+}
+.valor-caixa input:focus-visible { outline: none; }
+
+/* ---------- Busca de categoria ---------- */
+
+.busca-caixa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--superficie);
+  border: 2px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 0 12px;
+  margin-bottom: 12px;
+}
+.busca-caixa:focus-within { border-color: var(--acento); }
+.busca-caixa__lupa { font-size: 1rem; opacity: .6; }
+.busca-caixa input {
+  border: 0;
+  background: transparent;
+  padding: 12px 0;
+  font-size: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+.busca-caixa input:focus-visible { outline: none; }
+.busca-caixa__limpar {
+  border: 0;
+  background: transparent;
+  font-size: 1.1rem;
+  color: var(--tinta-suave);
+  cursor: pointer;
+  padding: 8px;
+  line-height: 1;
+}
+
+.grade-categorias {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+
+.categoria {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 84px;
+  padding: 10px 6px;
+  border: 2px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--tinta);
+  font: inherit;
+  font-size: .92rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .12s, background .12s;
+}
+.categoria__emoji { font-size: 1.6rem; line-height: 1; }
+
+/* A cor da categoria entra como variavel inline no JS (--cor) */
+.categoria[aria-selected="true"] {
+  border-color: var(--cor, var(--acento));
+  background: color-mix(in srgb, var(--cor, var(--acento)) 12%, white);
+  box-shadow: inset 0 0 0 1px var(--cor, var(--acento));
+}
+
+/* ---------- Botoes ---------- */
+
+.botao {
+  min-height: var(--alvo);
+  padding: 14px 20px;
+  border-radius: var(--raio);
+  border: 2px solid transparent;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.botao--principal { width: 100%; background: var(--acento); color: #fff; }
+.botao--principal:active { background: var(--acento-escuro); }
+.botao--secundario { background: var(--acento-claro); color: var(--acento-escuro); }
+.botao--fantasma { background: transparent; color: var(--tinta-suave); border-color: var(--borda); }
+.botao--perigo { background: var(--perigo); color: #fff; width: 100%; }
+
+.link {
+  background: none;
+  border: 0;
+  padding: 8px 0;
+  min-height: 44px;
+  color: var(--acento);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.acoes-form { display: grid; gap: 10px; margin-bottom: 32px; }
+.acoes-cartao { display: flex; flex-wrap: wrap; gap: 10px; }
+.acoes-cartao .botao { flex: 1 1 auto; }
+
+/* ---------- Mensagens ---------- */
+
+.erro { color: var(--perigo); font-size: .9rem; margin: 8px 0 0; font-weight: 600; }
+.dica { color: var(--tinta-suave); font-size: .9rem; margin: 10px 0 0; }
+.vazio { color: var(--tinta-suave); text-align: center; padding: 28px 12px; margin: 0; }
+
+.aviso {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  z-index: 20;
+  max-width: calc(100% - 32px);
+  background: var(--tinta);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-size: .95rem;
+  font-weight: 600;
+  box-shadow: var(--sombra);
+}
+.aviso--erro { background: var(--perigo); }
+
+/* ---------- Lista de lancamentos ---------- */
+
+.lista-dia__cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--borda);
+  padding-top: 20px;
+  margin-bottom: 12px;
+}
+.lista-dia__cabecalho h2 { font-size: 1.15rem; margin: 0; }
+.lista-dia__total { font-size: 1.2rem; }
+
+.lancamentos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+
+.lancamento {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 12px 14px;
+  box-shadow: var(--sombra);
+}
+.lancamento__marca {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+}
+.lancamento__corpo { flex: 1; min-width: 0; }
+.lancamento__descricao {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lancamento__meta { color: var(--tinta-suave); font-size: .85rem; }
+.lancamento__valor { font-weight: 700; white-space: nowrap; }
+.lancamento__acoes { display: flex; gap: 2px; }
+.lancamento__acao {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  line-height: 1;
+}
+
+/* ---------- Cartoes de ajustes ---------- */
+
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: var(--sombra);
+}
+.cartao h2 { font-size: 1.1rem; margin: 0 0 10px; }
+.cartao__texto { color: var(--tinta-suave); font-size: .95rem; margin: 0 0 14px; }
+.cartao--perigo { border-color: color-mix(in srgb, var(--perigo) 30%, var(--borda)); }
+.cartao--perigo h2 { color: var(--perigo); }
+
+.etiqueta {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: var(--acento-claro);
+  color: var(--acento-escuro);
+  padding: 3px 8px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+/* ---------- Seletor de periodo ---------- */
+
+.seletor-periodo {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 6px;
+  margin-bottom: 14px;
+}
+.periodo {
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--tinta-suave);
+  font: inherit;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.periodo[aria-pressed="true"] { background: var(--acento); color: #fff; }
+
+.navegador {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.navegador__seta {
+  min-height: 48px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--tinta);
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.navegador__seta[disabled] { opacity: .35; cursor: default; }
+.navegador__rotulo {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+/* ---------- Cartao de total ---------- */
+
+.cartao--total { text-align: center; }
+.cartao__rotulo {
+  margin: 0 0 6px;
+  color: var(--tinta-suave);
+  font-size: .9rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 700;
+}
+.total-grande {
+  display: block;
+  font-size: 2.3rem;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+}
+.comparacao { margin: 8px 0 0; font-size: .95rem; color: var(--tinta-suave); }
+.comparacao--subiu { color: var(--perigo); font-weight: 600; }
+.comparacao--desceu { color: var(--acento); font-weight: 600; }
+
+.texto-resumo { margin: 0; line-height: 1.6; }
+.texto-resumo--ia {
+  margin-top: 14px;
+  padding: 14px;
+  background: var(--acento-claro);
+  border-radius: var(--raio);
+  white-space: pre-wrap;
+}
+#area-ia { margin-top: 16px; }
+
+/* ---------- Graficos ---------- */
+
+.grafico-caixa { position: relative; height: 260px; }
+.grafico-caixa--barras { height: 220px; }
+.grafico-caixa canvas { max-width: 100%; }
+
+.legenda { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+.legenda__item { display: flex; align-items: center; gap: 10px; font-size: .95rem; }
+.legenda__ponto {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: 4px;
+}
+.legenda__nome { flex: 1; min-width: 0; }
+.legenda__valor { font-weight: 700; white-space: nowrap; }
+.legenda__fatia { color: var(--tinta-suave); font-size: .85rem; white-space: nowrap; }
+
+/* ---------- Barra de abas ---------- */
+
+.abas {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--superficie);
+  border-top: 1px solid var(--borda);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.aba {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: var(--barra);
+  border: 0;
+  background: transparent;
+  color: var(--tinta-suave);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.aba__icone { font-size: 1.35rem; line-height: 1; }
+.aba[aria-current="page"] { color: var(--acento); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
