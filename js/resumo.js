@@ -1,10 +1,14 @@
 // Aba "Resumo": seletor de periodo, total, texto e os dois graficos.
 
 import { PERIODOS, calcular, mover } from './periodos.js';
-import { listar } from './armazenamento.js';
-import { formatarBRL } from './formatar.js';
+import { listar, remover } from './armazenamento.js';
+import { formatarBRL, formatarDiaLongo, chaveDoDia, inputParaData } from './formatar.js';
+import { criarLinha } from './lancamento.js';
 import { textoLocal } from './texto-resumo.js';
 import { iniciarIA, aoTrocarPeriodo as avisarIA } from './ia.js';
+
+/** Quantos lancamentos o historico mostra por vez. */
+const POR_PAGINA = 30;
 
 const el = {};
 let periodoAtual = 'mes';
@@ -12,8 +16,15 @@ let referencia = new Date();
 let graficoPizza = null;
 let graficoBarras = null;
 let ultimoCalculo = null;
+let visiveis = POR_PAGINA;
+let mostrarAviso = () => {};
+let pedirEdicao = () => {};
+let avisarMudanca = () => {};
 
-export function iniciarResumo({ aviso }) {
+export function iniciarResumo({ aviso, aoEditar, aoMudarDados }) {
+  mostrarAviso = aviso;
+  pedirEdicao = aoEditar;
+  avisarMudanca = aoMudarDados;
   el.seletor = document.querySelector('.seletor-periodo');
   el.rotulo = document.getElementById('rotulo-periodo');
   el.anterior = document.getElementById('periodo-anterior');
@@ -26,6 +37,10 @@ export function iniciarResumo({ aviso }) {
   el.legenda = document.getElementById('legenda-categorias');
   el.pizza = document.getElementById('grafico-pizza');
   el.barras = document.getElementById('grafico-barras');
+  el.areaHistorico = document.getElementById('area-historico');
+  el.historico = document.getElementById('historico');
+  el.contagem = document.getElementById('contagem-historico');
+  el.verMais = document.getElementById('ver-mais');
 
   el.seletor.replaceChildren(
     ...PERIODOS.map((p) => {
@@ -38,6 +53,8 @@ export function iniciarResumo({ aviso }) {
       botao.addEventListener('click', () => {
         periodoAtual = p.id;
         referencia = new Date();
+        // Trocar de periodo recomeca o historico do topo.
+        visiveis = POR_PAGINA;
         atualizarResumo();
       });
       return botao;
@@ -46,10 +63,17 @@ export function iniciarResumo({ aviso }) {
 
   el.anterior.addEventListener('click', () => {
     referencia = mover(periodoAtual, referencia, -1);
+    visiveis = POR_PAGINA;
     atualizarResumo();
   });
   el.proximo.addEventListener('click', () => {
     referencia = mover(periodoAtual, referencia, 1);
+    visiveis = POR_PAGINA;
+    atualizarResumo();
+  });
+
+  el.verMais.addEventListener('click', () => {
+    visiveis += POR_PAGINA;
     atualizarResumo();
   });
 
@@ -75,17 +99,97 @@ export function atualizarResumo() {
 
   const vazio = dados.total === 0;
   el.graficos.hidden = vazio;
+  el.areaHistorico.hidden = vazio;
   el.vazio.hidden = !vazio;
 
   if (vazio) {
     destruirGraficos();
     el.legenda.replaceChildren();
+    el.historico.replaceChildren();
+    el.verMais.hidden = true;
     return;
   }
 
   desenharPizza(dados);
   desenharBarras(dados);
   desenharLegenda(dados);
+  desenharHistorico(dados);
+}
+
+// --- Historico --------------------------------------------------------------
+
+/**
+ * Lista os lancamentos do periodo, do mais recente para o mais antigo,
+ * agrupados por dia com subtotal. Mostra `visiveis` por vez.
+ */
+function desenharHistorico(dados) {
+  const ordenadas = dados.despesas.slice().sort((a, b) => b.data.localeCompare(a.data));
+  const total = ordenadas.length;
+  const naTela = ordenadas.slice(0, visiveis);
+  const restantes = total - naTela.length;
+
+  el.contagem.textContent =
+    restantes > 0
+      ? `${naTela.length} de ${total}`
+      : `${total} ${total === 1 ? 'lançamento' : 'lançamentos'}`;
+
+  // No periodo "Dia" o cabecalho de dia repetiria o rotulo que ja esta na tela.
+  const agrupar = dados.periodo !== 'dia';
+  el.historico.replaceChildren(
+    ...(agrupar ? gruposPorDia(naTela) : [listaDe(naTela)]),
+  );
+
+  el.verMais.hidden = restantes <= 0;
+  if (restantes > 0) {
+    el.verMais.textContent = `Ver mais ${Math.min(POR_PAGINA, restantes)} de ${restantes}`;
+  }
+}
+
+function gruposPorDia(despesas) {
+  const porDia = new Map();
+  for (const despesa of despesas) {
+    const dia = chaveDoDia(despesa.data);
+    if (!porDia.has(dia)) porDia.set(dia, []);
+    porDia.get(dia).push(despesa);
+  }
+
+  return [...porDia.entries()].map(([dia, doDia]) => {
+    const grupo = document.createElement('div');
+    grupo.className = 'historico__grupo';
+
+    const subtotal = doDia.reduce((soma, d) => soma + d.valor, 0);
+
+    const cabecalho = document.createElement('div');
+    cabecalho.className = 'historico__dia';
+    const nome = document.createElement('strong');
+    nome.textContent = formatarDiaLongo(inputParaData(`${dia}T12:00`));
+    const valor = document.createElement('span');
+    valor.textContent = formatarBRL(subtotal);
+    cabecalho.append(nome, valor);
+
+    grupo.append(cabecalho, listaDe(doDia));
+    return grupo;
+  });
+}
+
+function listaDe(despesas) {
+  const lista = document.createElement('ul');
+  lista.className = 'lancamentos';
+  lista.append(...despesas.map(linhaDoHistorico));
+  return lista;
+}
+
+function linhaDoHistorico(despesa) {
+  return criarLinha(despesa, {
+    aoEditar: (alvo) => pedirEdicao(alvo),
+    aoExcluir: (alvo) => {
+      remover(alvo.id);
+      // Apagar muda o total, os graficos e o texto — redesenha tudo.
+      atualizarResumo();
+      avisarMudanca();
+      mostrarAviso('Gasto excluído.');
+    },
+  });
 }
 
 function escreverComparacao(dados) {

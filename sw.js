@@ -3,7 +3,7 @@
 // Ao alterar qualquer arquivo da lista abaixo, suba o numero da versao —
 // e isso que faz o navegador buscar a versao nova.
 
-const VERSAO = 'despesas-v2';
+const VERSAO = 'despesas-v3';
 
 // Caminhos relativos: o app pode viver numa subpasta (GitHub Pages).
 const ARQUIVOS = [
@@ -16,6 +16,7 @@ const ARQUIVOS = [
   './js/categorias.js',
   './js/formatar.js',
   './js/formulario.js',
+  './js/lancamento.js',
   './js/periodos.js',
   './js/resumo.js',
   './js/texto-resumo.js',

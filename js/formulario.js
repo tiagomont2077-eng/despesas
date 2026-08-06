@@ -1,12 +1,12 @@
 // Aba "Lancar": formulario de despesa + lista dos gastos de hoje.
 
-import { CATEGORIAS, categoriaPorId, filtrarCategorias } from './categorias.js';
+import { CATEGORIAS, filtrarCategorias } from './categorias.js';
 import * as armazem from './armazenamento.js';
+import { criarLinha } from './lancamento.js';
 import {
   formatarBRL,
   digitosParaCentavos,
   agoraParaInput,
-  formatarHora,
   formatarDiaLongo,
   chaveDoDia,
 } from './formatar.js';
@@ -200,7 +200,11 @@ function limparFormulario() {
   esconder(el.erroCategoria);
 }
 
-function editar(despesa) {
+/**
+ * Carrega uma despesa no formulario para edicao.
+ * Exportada porque o historico da aba Resumo tambem edita por aqui.
+ */
+export function editarDespesa(despesa) {
   editandoId = despesa.id;
   el.id.value = despesa.id;
   el.valor.value = formatarBRL(despesa.valor).replace('R$', '').trim();
@@ -228,67 +232,19 @@ export function renderizarLista() {
   el.totalHoje.textContent = formatarBRL(total);
 
   el.vazio.hidden = doDia.length > 0;
-  el.lista.replaceChildren(...doDia.map(linha));
+  el.lista.replaceChildren(...doDia.map(linhaDoDia));
 }
 
-function linha(despesa) {
-  const categoria = categoriaPorId(despesa.categoria);
-  const item = document.createElement('li');
-  item.className = 'lancamento';
-
-  const marca = document.createElement('span');
-  marca.className = 'lancamento__marca';
-  marca.style.background = `color-mix(in srgb, ${categoria.cor} 18%, white)`;
-  marca.textContent = categoria.emoji;
-  marca.setAttribute('aria-hidden', 'true');
-
-  const corpo = document.createElement('div');
-  corpo.className = 'lancamento__corpo';
-  const descricao = document.createElement('div');
-  descricao.className = 'lancamento__descricao';
-  descricao.textContent = despesa.descricao || categoria.rotulo;
-  const meta = document.createElement('div');
-  meta.className = 'lancamento__meta';
-  meta.textContent = `${categoria.rotulo} · ${formatarHora(despesa.data)}`;
-  corpo.append(descricao, meta);
-
-  const valor = document.createElement('span');
-  valor.className = 'lancamento__valor';
-  valor.textContent = formatarBRL(despesa.valor);
-
-  const acoes = document.createElement('div');
-  acoes.className = 'lancamento__acoes';
-
-  const botaoEditar = document.createElement('button');
-  botaoEditar.type = 'button';
-  botaoEditar.className = 'lancamento__acao';
-  botaoEditar.textContent = '✏️';
-  botaoEditar.setAttribute(
-    'aria-label',
-    `Editar ${despesa.descricao || categoria.rotulo}, ${formatarBRL(despesa.valor)}`,
-  );
-  botaoEditar.addEventListener('click', () => editar(despesa));
-
-  const botaoExcluir = document.createElement('button');
-  botaoExcluir.type = 'button';
-  botaoExcluir.className = 'lancamento__acao';
-  botaoExcluir.textContent = '🗑️';
-  botaoExcluir.setAttribute(
-    'aria-label',
-    `Excluir ${despesa.descricao || categoria.rotulo}, ${formatarBRL(despesa.valor)}`,
-  );
-  botaoExcluir.addEventListener('click', () => {
-    const nome = despesa.descricao || categoria.rotulo;
-    if (!confirm(`Excluir "${nome}" de ${formatarBRL(despesa.valor)}?`)) return;
-    armazem.remover(despesa.id);
-    if (editandoId === despesa.id) limparFormulario();
-    renderizarLista();
-    mostrarAviso('Gasto excluído.');
+function linhaDoDia(despesa) {
+  return criarLinha(despesa, {
+    aoEditar: editarDespesa,
+    aoExcluir: (alvo) => {
+      armazem.remover(alvo.id);
+      if (editandoId === alvo.id) limparFormulario();
+      renderizarLista();
+      mostrarAviso('Gasto excluído.');
+    },
   });
-
-  acoes.append(botaoEditar, botaoExcluir);
-  item.append(marca, corpo, valor, acoes);
-  return item;
 }
 
 // --- Auxiliares -------------------------------------------------------------

@@ -234,11 +234,21 @@ button:focus-visible {
 .lista-dia__cabecalho h2 { font-size: 1.15rem; margin: 0; }
 .lista-dia__total { font-size: 1.2rem; }
 
-.lancamentos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lancamentos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* minmax(0,1fr) — sem isso o item do grid nao encolhe abaixo do conteudo
+     minimo e a linha vaza para fora do cartao do historico, que e estreito. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
 
 .lancamento {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 12px;
   background: var(--superficie);
   border: 1px solid var(--borda);
@@ -262,7 +272,13 @@ button:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.lancamento__meta { color: var(--tinta-suave); font-size: .85rem; }
+.lancamento__meta {
+  color: var(--tinta-suave);
+  font-size: .85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .lancamento__valor { font-weight: 700; white-space: nowrap; }
 .lancamento__acoes { display: flex; gap: 2px; }
 .lancamento__acao {
@@ -402,6 +418,36 @@ button:focus-visible {
 .legenda__nome { flex: 1; min-width: 0; }
 .legenda__valor { font-weight: 700; white-space: nowrap; }
 .legenda__fatia { color: var(--tinta-suave); font-size: .85rem; white-space: nowrap; }
+
+/* ---------- Historico do periodo ---------- */
+
+.historico__cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.historico__cabecalho h2 { margin: 0; }
+.historico__contagem { color: var(--tinta-suave); font-size: .9rem; white-space: nowrap; }
+
+.historico__grupo { margin-top: 18px; }
+
+/* Cabecalho de cada dia: nome do dia a esquerda, subtotal a direita */
+.historico__dia {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--borda);
+  padding-top: 12px;
+  margin-bottom: 10px;
+  font-size: .88rem;
+  color: var(--tinta-suave);
+}
+.historico__dia strong { color: var(--tinta); font-size: .95rem; }
+
+#ver-mais { width: 100%; margin-top: 18px; }
 
 /* ---------- Barra de abas ---------- */
 

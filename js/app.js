@@ -1,6 +1,6 @@
 // Ponto de entrada: navegacao entre abas, avisos e registro do service worker.
 
-import { iniciarFormulario, renderizarLista } from './formulario.js';
+import { iniciarFormulario, renderizarLista, editarDespesa } from './formulario.js';
 import { iniciarResumo, atualizarResumo } from './resumo.js';
 import { iniciarAjustes, atualizarAjustes } from './ajustes.js';
 
@@ -39,7 +39,17 @@ function trocarAba(nome) {
 
 function iniciar() {
   iniciarFormulario({ aviso: mostrarAviso });
-  iniciarResumo({ aviso: mostrarAviso });
+
+  iniciarResumo({
+    aviso: mostrarAviso,
+    // O formulario de edicao vive na aba Lancar: leva para la ja preenchido.
+    aoEditar: (despesa) => {
+      trocarAba('lancar');
+      editarDespesa(despesa);
+    },
+    aoMudarDados: renderizarLista,
+  });
+
   iniciarAjustes({
     aviso: mostrarAviso,
     aoMudar: () => {
