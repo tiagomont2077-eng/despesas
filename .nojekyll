@@ -1,0 +1,10 @@
+Este arquivo desliga o Jekyll no GitHub Pages.
+
+O site e estatico puro: HTML, CSS e JS servidos como estao, sem build.
+Sem este arquivo, o Pages passa tudo pelo Jekyll antes de publicar — e o
+Jekyll ignora por padrao varias pastas (entre elas caminhos sob vendor/),
+alem de poder falhar o build inteiro por causa de algum arquivo que ele
+tente interpretar. Quando esse build falha, o GitHub mantem no ar a ultima
+publicacao que deu certo, sem aviso claro.
+
+Com o .nojekyll presente, o Pages copia os arquivos exatamente como estao.
