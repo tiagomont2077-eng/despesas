@@ -1,26 +1,22 @@
-// Camada de nuvem (Firebase) — OPCIONAL.
+// Camada de nuvem (Supabase) — OPCIONAL.
 //
-// Regra de ouro deste modulo: se o Firebase nao estiver configurado, nao
-// carregar, falhar ou o aparelho estiver offline, o app inteiro continua
-// funcionando como sempre funcionou, em localStorage. Nada aqui pode
-// derrubar o resto.
+// Regra de ouro deste modulo: se a nuvem nao estiver configurada, nao carregar,
+// falhar ou o aparelho estiver offline, o app inteiro continua funcionando como
+// sempre funcionou, em localStorage. Nada aqui pode derrubar o resto.
 //
-// Fase 1: so entrar e sair com a conta Google. Sincronizacao e familia vem
-// nas fases seguintes.
+// Fase 1: so entrar e sair, por link enviado no e-mail (sem senha).
+// Sincronizacao e visao da familia vem nas fases seguintes.
 
-import { CONFIG_FIREBASE, configurado } from './config-firebase.js';
+import { URL_SUPABASE, CHAVE_PUBLICA, configurado } from './config-nuvem.js';
 
-const CHAVE_TENTOU_ENTRAR = 'nuvem.tentouEntrar';
-
-let app = null;
-let auth = null;
+let cliente = null;
 let usuarioAtual = null;
 let pronto = false;
 const ouvintes = new Set();
 
-/** O modulo esta utilizavel? (configurado + SDK carregado) */
+/** A nuvem esta utilizavel? (configurada + biblioteca carregada) */
 export function disponivel() {
-  return pronto && Boolean(auth);
+  return pronto && Boolean(cliente);
 }
 
 export function usuario() {
@@ -44,117 +40,120 @@ function avisar() {
   }
 }
 
+function normalizar(sessao) {
+  const quem = sessao?.user;
+  if (!quem) return null;
+  return {
+    id: quem.id,
+    email: quem.email || '',
+    // O nome so existe depois que a pessoa preencher; ate la, usamos o e-mail.
+    nome: quem.user_metadata?.nome || quem.email || 'Sem nome',
+  };
+}
+
 /**
- * Inicializa o Firebase. Nunca lanca excecao: qualquer problema apenas
- * deixa `disponivel()` como falso e o app segue local.
+ * Inicializa a nuvem. Nunca lanca excecao: qualquer problema apenas deixa
+ * `disponivel()` como falso e o app segue local.
  */
 export async function iniciarNuvem() {
   if (!configurado()) {
-    console.info('Firebase sem configuração — app rodando somente local.');
+    console.info('Nuvem sem configuração — app rodando somente local.');
     return false;
   }
-  if (typeof globalThis.firebase === 'undefined') {
-    console.warn('SDK do Firebase não carregou — app rodando somente local.');
+  if (typeof globalThis.supabase?.createClient !== 'function') {
+    console.warn('Biblioteca do Supabase não carregou — app rodando somente local.');
     return false;
   }
 
   try {
-    app = firebase.initializeApp(CONFIG_FIREBASE);
-    auth = firebase.auth();
+    cliente = globalThis.supabase.createClient(URL_SUPABASE, CHAVE_PUBLICA, {
+      auth: {
+        persistSession: true, // a pessoa entra uma vez so
+        autoRefreshToken: true,
+        // O link do e-mail volta com o token no endereco; isto o consome.
+        detectSessionInUrl: true,
+      },
+    });
 
-    // Mantem a sessao entre aberturas do app: a pessoa entra uma vez so.
-    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const { data } = await cliente.auth.getSession();
+    usuarioAtual = normalizar(data?.session);
 
-    // Em PWA instalado o login acontece por redirecionamento; ao voltar,
-    // e aqui que o resultado chega.
-    try {
-      await auth.getRedirectResult();
-    } catch (erro) {
-      console.error('Retorno do login falhou:', erro);
-      registrarErroDeEntrada(erro);
-    } finally {
-      localStorage.removeItem(CHAVE_TENTOU_ENTRAR);
-    }
-
-    auth.onAuthStateChanged((quem) => {
-      usuarioAtual = quem
-        ? {
-            uid: quem.uid,
-            nome: quem.displayName || quem.email || 'Sem nome',
-            email: quem.email || '',
-            foto: quem.photoURL || '',
-          }
-        : null;
+    cliente.auth.onAuthStateChange((_evento, sessao) => {
+      usuarioAtual = normalizar(sessao);
       avisar();
     });
 
     pronto = true;
+    limparEnderecoDoLink();
+    avisar();
     return true;
   } catch (erro) {
-    console.error('Não foi possível iniciar o Firebase:', erro);
+    console.error('Não foi possível iniciar a nuvem:', erro);
     pronto = false;
     return false;
   }
 }
 
 /**
- * Entra com a conta Google.
- * Tenta popup primeiro (melhor experiencia no navegador) e cai para
- * redirecionamento quando o popup e bloqueado — que e o caso comum
- * no PWA instalado no celular.
+ * Depois de entrar, o Supabase deixa o token no endereco. Tirar isso da barra
+ * evita que a pessoa compartilhe sem querer um link com a propria sessao.
  */
-export async function entrar() {
-  if (!disponivel()) throw new Error('Conta indisponível neste momento.');
+function limparEnderecoDoLink() {
+  if (!location.hash.includes('access_token') && !location.search.includes('code=')) return;
+  history.replaceState(null, '', location.pathname);
+}
 
-  const provedor = new firebase.auth.GoogleAuthProvider();
-  // Sempre perguntar qual conta: em celular compartilhado isso evita
-  // lancar gasto na conta da pessoa errada.
-  provedor.setCustomParameters({ prompt: 'select_account' });
+/**
+ * Envia o link de acesso para o e-mail. Nao existe senha: quem abre o link
+ * no proprio celular esta autenticado.
+ */
+export async function enviarLink(email) {
+  if (!disponivel()) throw new Error('Acesso indisponível neste momento.');
 
-  try {
-    const resultado = await auth.signInWithPopup(provedor);
-    return resultado.user;
-  } catch (erro) {
-    if (precisaRedirecionar(erro)) {
-      localStorage.setItem(CHAVE_TENTOU_ENTRAR, '1');
-      await auth.signInWithRedirect(provedor);
-      return null; // a pagina vai recarregar
-    }
-    throw new Error(mensagemDeErro(erro));
+  const limpo = String(email ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(limpo)) {
+    throw new Error('Digite um e-mail válido.');
   }
+
+  const { error } = await cliente.auth.signInWithOtp({
+    email: limpo,
+    options: {
+      // Volta para o proprio app, seja no localhost ou no GitHub Pages.
+      emailRedirectTo: new URL('./', location.href).href,
+      shouldCreateUser: true,
+    },
+  });
+
+  if (error) throw new Error(mensagemDeErro(error));
+  return limpo;
 }
 
 export async function sair() {
   if (!disponivel()) return;
-  await auth.signOut();
+  const { error } = await cliente.auth.signOut();
+  if (error) throw new Error(mensagemDeErro(error));
 }
 
-function precisaRedirecionar(erro) {
-  return [
-    'auth/popup-blocked',
-    'auth/operation-not-supported-in-this-environment',
-    'auth/cancelled-popup-request',
-  ].includes(erro?.code);
+/** Usado pelas proximas fases para falar com o banco. */
+export function obterCliente() {
+  return cliente;
 }
 
-function registrarErroDeEntrada(erro) {
-  if (!localStorage.getItem(CHAVE_TENTOU_ENTRAR)) return;
-  console.error('A entrada por redirecionamento não completou:', erro?.code);
-}
-
-/** Mensagens em portugues para o que a pessoa pode de fato resolver. */
+/** Mensagens em portugues, focadas no que a pessoa consegue resolver. */
 export function mensagemDeErro(erro) {
-  switch (erro?.code) {
-    case 'auth/popup-closed-by-user':
-    case 'auth/user-cancelled':
-      return 'Entrada cancelada.';
-    case 'auth/network-request-failed':
-      return 'Sem internet para entrar. O app continua funcionando normalmente.';
-    case 'auth/unauthorized-domain':
-      return 'Este endereço não está autorizado no Firebase.';
-    case 'auth/operation-not-allowed':
-      return 'O acesso pelo Google não está ativado no Firebase.';
-    default:
-      return erro?.message || 'Não foi possível entrar agora.';
+  const texto = String(erro?.message ?? erro ?? '').toLowerCase();
+
+  if (texto.includes('rate limit') || texto.includes('too many')) {
+    return 'Muitos pedidos seguidos. Espere alguns minutos e tente de novo.';
   }
+  if (texto.includes('failed to fetch') || texto.includes('network')) {
+    return 'Sem internet para entrar. O app continua funcionando normalmente.';
+  }
+  if (texto.includes('invalid') && texto.includes('email')) {
+    return 'Esse e-mail não parece válido.';
+  }
+  if (texto.includes('signups not allowed') || texto.includes('not allowed')) {
+    return 'Este e-mail não está autorizado a entrar.';
+  }
+  return erro?.message || 'Não foi possível entrar agora.';
 }

@@ -92,9 +92,11 @@ function iniciarCartaoConta() {
   const cartao = document.getElementById('cartao-conta');
   if (!cartao) return;
 
+  const desconectada = document.getElementById('conta-desconectada');
+  const conectada = document.getElementById('conta-conectada');
+  const campoEmail = document.getElementById('campo-email');
   const entrar = document.getElementById('botao-entrar');
   const sair = document.getElementById('botao-sair');
-  const conectada = document.getElementById('conta-conectada');
   const nome = document.getElementById('conta-nome');
   const email = document.getElementById('conta-email');
   const estado = document.getElementById('estado-conta');
@@ -108,35 +110,48 @@ function iniciarCartaoConta() {
 
   nuvem.aoMudarUsuario((quem) => {
     const dentro = Boolean(quem);
+    desconectada.hidden = dentro;
     conectada.hidden = !dentro;
-    entrar.hidden = dentro;
-    sair.hidden = !dentro;
     explicacao.hidden = dentro;
     if (dentro) {
       nome.textContent = quem.nome;
       email.textContent = quem.email;
+      campoEmail.value = '';
+      esconder(estado);
     }
-    esconder(estado);
   });
 
-  entrar.addEventListener('click', async () => {
+  const pedirLink = async () => {
     entrar.disabled = true;
-    mostrar(estado, 'Abrindo o acesso do Google…');
+    mostrar(estado, 'Enviando o link…');
     try {
-      await nuvem.entrar();
-      esconder(estado);
+      const enviado = await nuvem.enviarLink(campoEmail.value);
+      mostrar(
+        estado,
+        `Link enviado para ${enviado}. Abra o e-mail neste mesmo aparelho e ` +
+          'toque no link. Se não achar, veja no lixo eletrônico.',
+      );
+      mostrarAviso('Link enviado. Confira seu e-mail.');
     } catch (erro) {
       mostrar(estado, erro.message);
       mostrarAviso(erro.message, true);
     } finally {
       entrar.disabled = false;
     }
+  };
+
+  entrar.addEventListener('click', pedirLink);
+  // Enter no campo de e-mail faz a mesma coisa que tocar no botao.
+  campoEmail.addEventListener('keydown', (evento) => {
+    if (evento.key !== 'Enter') return;
+    evento.preventDefault();
+    pedirLink();
   });
 
   sair.addEventListener('click', async () => {
     try {
       await nuvem.sair();
-      mostrarAviso('Você saiu da conta. Seus gastos continuam neste aparelho.');
+      mostrarAviso('Você saiu. Seus gastos continuam neste aparelho.');
     } catch (erro) {
       mostrarAviso(nuvem.mensagemDeErro(erro), true);
     }

@@ -23,11 +23,9 @@ const ARQUIVOS = [
   './js/ia.js',
   './js/ajustes.js',
   './js/nuvem.js',
-  './js/config-firebase.js',
+  './js/config-nuvem.js',
   './vendor/chart.umd.min.js',
-  './vendor/firebase-app-compat.js',
-  './vendor/firebase-auth-compat.js',
-  './vendor/firebase-firestore-compat.js',
+  './vendor/supabase.umd.js',
   './icons/icone-192.png',
   './icons/icone-512.png',
   './icons/icone-mascara-512.png',
@@ -65,8 +63,9 @@ self.addEventListener('fetch', (evento) => {
 
   const url = new URL(request.url);
 
-  // A API da Anthropic precisa ir direto para a rede, sem interferencia.
+  // APIs externas precisam ir direto para a rede, sem interferencia.
   if (url.hostname.endsWith('anthropic.com')) return;
+  if (url.hostname.endsWith('supabase.co')) return;
 
   // Recursos de outras origens tambem passam direto.
   if (url.origin !== self.location.origin) return;
