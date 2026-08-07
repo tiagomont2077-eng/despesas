@@ -25,8 +25,9 @@
 // resumo com IA), que e secreta de verdade e por isso fica so no aparelho.
 // ----------------------------------------------------------------------------
 
-export const URL_SUPABASE = 'https://SEU-PROJETO.supabase.co';
-export const CHAVE_PUBLICA = 'SUA_CHAVE_ANON_PUBLIC';
+// Raiz do projeto, sem "/rest/v1/" no fim — o cliente monta os caminhos sozinho.
+export const URL_SUPABASE = 'https://dmueqjcueyqyqcfffabb.supabase.co';
+export const CHAVE_PUBLICA = 'sb_publishable_ehh9oxZ9xQ4jghuHEdBRKQ_ytlk1Pon';
 
 /** O app so tenta falar com o Supabase depois que isto virar verdadeiro. */
 export function configurado() {
