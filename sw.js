@@ -3,7 +3,7 @@
 // Ao alterar qualquer arquivo da lista abaixo, suba o numero da versao —
 // e isso que faz o navegador buscar a versao nova.
 
-const VERSAO = 'despesas-v3';
+const VERSAO = 'despesas-v4';
 
 // Caminhos relativos: o app pode viver numa subpasta (GitHub Pages).
 const ARQUIVOS = [
@@ -22,7 +22,12 @@ const ARQUIVOS = [
   './js/texto-resumo.js',
   './js/ia.js',
   './js/ajustes.js',
+  './js/nuvem.js',
+  './js/config-firebase.js',
   './vendor/chart.umd.min.js',
+  './vendor/firebase-app-compat.js',
+  './vendor/firebase-auth-compat.js',
+  './vendor/firebase-firestore-compat.js',
   './icons/icone-192.png',
   './icons/icone-512.png',
   './icons/icone-mascara-512.png',

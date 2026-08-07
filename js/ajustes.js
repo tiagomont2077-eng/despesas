@@ -1,6 +1,7 @@
 // Aba "Ajustes": copia de seguranca, chave da API e apagar tudo.
 
 import * as armazem from './armazenamento.js';
+import * as nuvem from './nuvem.js';
 
 let mostrarAviso = () => {};
 let aoMudarDados = () => {};
@@ -8,6 +9,8 @@ let aoMudarDados = () => {};
 export function iniciarAjustes({ aviso, aoMudar }) {
   mostrarAviso = aviso;
   aoMudarDados = aoMudar;
+
+  iniciarCartaoConta();
 
   const exportar = document.getElementById('botao-exportar');
   const importar = document.getElementById('botao-importar');
@@ -76,6 +79,78 @@ export function iniciarAjustes({ aviso, aoMudar }) {
 export function atualizarAjustes() {
   atualizarContagem();
   atualizarEstadoChave();
+}
+
+// --- Conta e familia --------------------------------------------------------
+
+/**
+ * O cartao so aparece se a nuvem estiver realmente disponivel.
+ * Sem Firebase configurado, a pessoa nem ve que existe essa opcao —
+ * o app continua sendo o de sempre.
+ */
+function iniciarCartaoConta() {
+  const cartao = document.getElementById('cartao-conta');
+  if (!cartao) return;
+
+  const entrar = document.getElementById('botao-entrar');
+  const sair = document.getElementById('botao-sair');
+  const conectada = document.getElementById('conta-conectada');
+  const nome = document.getElementById('conta-nome');
+  const email = document.getElementById('conta-email');
+  const estado = document.getElementById('estado-conta');
+  const explicacao = document.getElementById('conta-explicacao');
+
+  if (!nuvem.disponivel()) {
+    cartao.hidden = true;
+    return;
+  }
+  cartao.hidden = false;
+
+  nuvem.aoMudarUsuario((quem) => {
+    const dentro = Boolean(quem);
+    conectada.hidden = !dentro;
+    entrar.hidden = dentro;
+    sair.hidden = !dentro;
+    explicacao.hidden = dentro;
+    if (dentro) {
+      nome.textContent = quem.nome;
+      email.textContent = quem.email;
+    }
+    esconder(estado);
+  });
+
+  entrar.addEventListener('click', async () => {
+    entrar.disabled = true;
+    mostrar(estado, 'Abrindo o acesso do Google…');
+    try {
+      await nuvem.entrar();
+      esconder(estado);
+    } catch (erro) {
+      mostrar(estado, erro.message);
+      mostrarAviso(erro.message, true);
+    } finally {
+      entrar.disabled = false;
+    }
+  });
+
+  sair.addEventListener('click', async () => {
+    try {
+      await nuvem.sair();
+      mostrarAviso('Você saiu da conta. Seus gastos continuam neste aparelho.');
+    } catch (erro) {
+      mostrarAviso(nuvem.mensagemDeErro(erro), true);
+    }
+  });
+}
+
+function mostrar(elemento, texto) {
+  elemento.textContent = texto;
+  elemento.hidden = false;
+}
+
+function esconder(elemento) {
+  elemento.textContent = '';
+  elemento.hidden = true;
 }
 
 function atualizarContagem() {

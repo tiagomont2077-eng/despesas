@@ -184,6 +184,32 @@
       <h1 id="titulo-ajustes">Ajustes</h1>
     </header>
 
+    <section class="cartao" id="cartao-conta" hidden>
+      <h2>Conta e família <span class="etiqueta">opcional</span></h2>
+      <p class="cartao__texto" id="conta-explicacao">
+        Entrando com sua conta Google, seus gastos passam a ser guardados também
+        na nuvem e você poderá ver os totais da família. Sem entrar, o app
+        funciona exatamente como sempre, com os dados só neste aparelho.
+      </p>
+
+      <div id="conta-conectada" hidden>
+        <p class="cartao__texto">
+          Conectado como <strong id="conta-nome"></strong>
+          <br><span id="conta-email" class="dica"></span>
+        </p>
+      </div>
+
+      <div class="acoes-cartao">
+        <button type="button" id="botao-entrar" class="botao botao--secundario">
+          Entrar com o Google
+        </button>
+        <button type="button" id="botao-sair" class="botao botao--fantasma" hidden>
+          Sair
+        </button>
+      </div>
+      <p class="dica" id="estado-conta" hidden></p>
+    </section>
+
     <section class="cartao">
       <h2>Cópia de segurança</h2>
       <p class="cartao__texto">
@@ -253,9 +279,12 @@
   </button>
 </nav>
 
-<!-- Chart.js local (nao CDN): o app precisa abrir sem internet.
-     Vem antes do modulo para que window.Chart ja exista. -->
+<!-- Bibliotecas locais (nao CDN): o app precisa abrir sem internet.
+     Vem antes do modulo para que window.Chart e window.firebase ja existam. -->
 <script src="./vendor/chart.umd.min.js" defer></script>
+<script src="./vendor/firebase-app-compat.js" defer></script>
+<script src="./vendor/firebase-auth-compat.js" defer></script>
+<script src="./vendor/firebase-firestore-compat.js" defer></script>
 <script type="module" src="./js/app.js"></script>
 </body>
 </html>

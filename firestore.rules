@@ -1,0 +1,114 @@
+rules_version = '2';
+
+// Regras de seguranca do Firestore para o app de despesas em familia.
+//
+// COMO PUBLICAR:
+//   console.firebase.google.com -> seu projeto -> Firestore Database
+//   -> aba "Regras" -> cole este arquivo inteiro -> "Publicar"
+//
+// A ideia central: quem protege os dados sao ESTAS regras. A configuracao do
+// Firebase que fica no codigo e publica de proposito; sem regras corretas,
+// qualquer pessoa leria tudo. Com elas, o proprio servidor recusa o acesso.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- auxiliares ----
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function familia(fid) {
+      return get(/databases/$(database)/documents/familias/$(fid)).data;
+    }
+
+    function ehMembro(fid) {
+      return autenticado() && request.auth.uid in familia(fid).membros;
+    }
+
+    function ehDono(fid) {
+      return autenticado() && familia(fid).criadoPor == request.auth.uid;
+    }
+
+    // ---- familias ----
+
+    match /familias/{fid} {
+      // So membros leem os dados da familia (incluindo a lista de membros).
+      allow read: if ehMembro(fid);
+
+      // Criar: qualquer pessoa autenticada, desde que se registre como dona
+      // e ja entre como membro. Impede criar familia em nome de outro.
+      allow create: if autenticado()
+                    && request.resource.data.criadoPor == request.auth.uid
+                    && request.auth.uid in request.resource.data.membros;
+
+      // Atualizar tem dois casos legitimos:
+      //   1. o dono mexendo na familia (renomear, remover alguem)
+      //   2. alguem ENTRANDO, apresentando o codigo de convite correto
+      allow update: if ehDono(fid) || entrandoComConvite(fid);
+
+      // Nao existe apagar familia pelo app: e destrutivo demais para um toque
+      // acidental. Se precisar, apaga-se pelo console do Firebase.
+      allow delete: if false;
+
+      // Entrar na familia: a pessoa so pode ACRESCENTAR a si mesma, sem
+      // alterar mais nada do documento, e precisa saber o codigo do convite.
+      function entrandoComConvite(fid) {
+        let antes = resource.data;
+        let depois = request.resource.data;
+        return autenticado()
+               && depois.codigoConvite == antes.codigoConvite
+               && request.resource.data.codigoApresentado == antes.codigoConvite
+               && depois.criadoPor == antes.criadoPor
+               && depois.membros.keys().hasAll(antes.membros.keys())
+               && depois.membros.keys().hasOnly(antes.membros.keys().concat([request.auth.uid]));
+      }
+
+      // ---- lancamentos: a parte que a familia soma ----
+      //
+      // Guarda valor, categoria, data e de quem e. Todos os membros leem —
+      // e isso que permite os totais por pessoa e por categoria.
+      match /lancamentos/{id} {
+        allow read: if ehMembro(fid);
+
+        allow create: if ehMembro(fid)
+                      && request.resource.data.uid == request.auth.uid;
+
+        // Cada um so mexe no que e seu.
+        allow update, delete: if ehMembro(fid)
+                              && resource.data.uid == request.auth.uid;
+      }
+
+      // ---- detalhes: a parte privada ----
+      //
+      // Guarda a descricao ("farmacia", "presente do fulano"). SO O DONO le.
+      // E por isso que descricao mora em outra colecao: as regras do Firestore
+      // controlam acesso por documento, nunca por campo. Se a descricao
+      // estivesse junto do valor, escondê-la seria só o app deixando de
+      // mostrar — e qualquer um leria por fora.
+      match /detalhes/{id} {
+        allow read: if autenticado() && resource.data.uid == request.auth.uid;
+        allow create: if ehMembro(fid)
+                      && request.resource.data.uid == request.auth.uid;
+        allow update, delete: if autenticado()
+                              && resource.data.uid == request.auth.uid;
+      }
+    }
+
+    // ---- convites: traduz um codigo curto no id da familia ----
+    //
+    // Legivel por qualquer pessoa autenticada, mas so serve para quem ja
+    // conhece o codigo: o id do documento E o codigo. Nao da para listar.
+    match /convites/{codigo} {
+      allow get: if autenticado();
+      allow list: if false;
+      allow write: if false; // criado pelo dono via documento da familia
+    }
+
+    // Nada mais e acessivel.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

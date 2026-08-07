@@ -3,6 +3,7 @@
 import { iniciarFormulario, renderizarLista, editarDespesa } from './formulario.js';
 import { iniciarResumo, atualizarResumo } from './resumo.js';
 import { iniciarAjustes, atualizarAjustes } from './ajustes.js';
+import { iniciarNuvem } from './nuvem.js';
 
 const PAINEIS = {
   lancar: 'painel-lancar',
@@ -37,7 +38,11 @@ function trocarAba(nome) {
   window.scrollTo({ top: 0 });
 }
 
-function iniciar() {
+async function iniciar() {
+  // A nuvem vem antes so para que Ajustes ja saiba se deve mostrar o cartao
+  // de conta. Ela nunca lanca erro: sem Firebase, o app segue local.
+  await iniciarNuvem();
+
   iniciarFormulario({ aviso: mostrarAviso });
 
   iniciarResumo({
